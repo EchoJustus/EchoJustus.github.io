@@ -1,0 +1,5 @@
+# Nothing generated belongs in this repository. The site ships as an
+# Actions artifact (DESIGN.md §7.1); no built HTML is ever committed.
+dist/
+dist-*/
+docs/

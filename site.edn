@@ -1,0 +1,119 @@
+;; EchoJustus.github.io — site configuration for clogem-press.
+;;
+;; This is the content repo. The generator lives in EchoJustus/clogem-press and
+;; is checked out by .github/workflows/publish.yml at a pinned ref; nothing is
+;; vendored here and no built HTML is ever committed.
+;;
+;; Every key below has a documented default in the generator's
+;; `config.example.edn` — that file is the schema. Any string-valued key may be
+;; either a plain string (same in all languages) or a map keyed by language
+;; code; the fallback chain is
+;;
+;;     requested lang → :langs :default → :en → the key itself
+;;
+;; so there is exactly one rule to learn (DESIGN.md §6.5).
+
+{;; ---------------------------------------------------------------- site ----
+ :site {:title       "EchoJustus"          ; a plain string: identical in all
+                                           ; five languages. Swap it for a map
+                                           ; keyed by language to localize it,
+                                           ; the way :description is below.
+        :description {:en      "Notes, guides, and posts."
+                      :zh-Hans "笔记、指南与文章。"
+                      :zh-Hant "筆記、指南與文章。"
+                      :ms      "Nota, panduan, dan catatan."
+                      :ta      "குறிப்புகள், வழிகாட்டிகள் மற்றும் இடுகைகள்."}
+        :url         "https://echojustus.github.io"   ; no trailing slash
+        :base        "/"}                             ; a user site is served at the root
+
+ ;; ----------------------------------------------------------- generator ----
+ ;; D-14: the AUTHORITATIVE version pin is the `ref:` in publish.yml, because
+ ;; the checkout has already happened by the time the generator reads this
+ ;; file. What lives here is documentation, plus an optional compatibility
+ ;; FLOOR (`:min-version`). No floor is declared yet: the generator has not cut
+ ;; a release, so there is no version number to floor against. Add one — e.g.
+ ;; :min-version "0.1.0" — in the same commit that moves publish.yml's `ref:`
+ ;; from the pinned sha to a tag.
+ ;;
+ ;; Caveat at the pinned generator: DESIGN.md says the floor hard-fails the
+ ;; build, but it does not. Config-level problems (a violated floor, an
+ ;; unknown :langs :default, a bad :giscus value) are PRINTED and the build
+ ;; then finishes and exits 0 — the config is validated outside the diagnostic
+ ;; sink that turns errors into a non-zero exit. Read the workflow log rather
+ ;; than trusting the green tick after changing this file.
+ ;;
+ ;; :repo itself is documentation. Nothing reads it.
+ :generator {:repo "EchoJustus/clogem-press"}
+
+ ;; --------------------------------------------------------------- langs ----
+ :langs {:default  :en
+         ;; Per-article default-version order. The bare /pages/xxxxxx/ URL
+         ;; serves the first language in this list that the article ACTUALLY
+         ;; HAS — not a site-wide default (DESIGN.md §6.3). That is what lets an
+         ;; article exist with no English version and still be reachable at its
+         ;; identity URL.
+         :priority [:en :zh-Hans :zh-Hant :ms :ta]
+         :locales
+         {:en      {:label "English"       :html-lang "en"      :giscus "en"    :dir :ltr}
+          :zh-Hans {:label "简体中文"       :html-lang "zh-Hans" :giscus "zh-CN" :dir :ltr}
+          :zh-Hant {:label "繁體中文"       :html-lang "zh-Hant" :giscus "zh-TW" :dir :ltr}
+          ;; :giscus for ms/ta MUST be "en". giscus has no locale for either,
+          ;; and data-lang is routed into the widget's iframe URL — an
+          ;; unroutable value 404s the iframe and no comment widget renders at
+          ;; all. The build validates this whenever the key is present, even
+          ;; while :comments :provider is :none (DESIGN.md §6.8).
+          :ms      {:label "Bahasa Melayu" :html-lang "ms"      :giscus "en"    :dir :ltr}
+          :ta      {:label "தமிழ்"          :html-lang "ta"      :giscus "en"    :dir :ltr}}}
+
+ ;; ---------------------------------------------------------------- i18n ----
+ :i18n {:strings-dir   "i18n"     ; <lang>.edn, deep-merged over theme defaults
+        ;; false → the primary variant lives at the bare /pages/xxxxxx/ and only
+        ;; non-primary variants get a /<lang>/ prefix (D-10).
+        :prefix-default? false
+        :missing-key   :warn
+        :category-labels {}
+        :show-fallback-notice true}
+
+ ;; ------------------------------------------------------------- content ----
+ :content {:dir "content"
+           :assets-dir "assets"
+           ;; Reserved. The pinned generator emits no /categories/, /tags/ or
+           ;; /archives/ index pages yet, so these three are inert today.
+           :category true :tag true :archive true
+           :category-text "Notes"        ; category for _posts/ with no subfolder
+           :extend-frontmatter {}
+           :permalink-prefix "/pages/"
+           :permalink-length 6
+           ;; true → the build (and `fm-fix`) writes missing front matter into
+           ;; the source files. That is what puts the permalink INSIDE the file,
+           ;; which is what makes `git mv` URL-safe (DESIGN.md §7.2), and it is
+           ;; what the publish workflow's normalization step relies on.
+           :write-front-matter true
+           :permalinks-file "permalinks.edn"}
+
+ ;; --------------------------------------------------------------- theme ----
+ :theme {:default-mode :auto          ; :auto | :light | :dark | :read
+         :page-style   :card          ; :card | :line
+         :sidebar-open true}
+
+ :nav [{:text {:en      "Home"
+               :zh-Hans "首页"
+               :zh-Hant "首頁"
+               :ms      "Laman utama"
+               :ta      "முகப்பு"}
+        :link "/"}]
+
+ ;; -------------------------------------------------------------- search ----
+ :search   {:provider :none}   ; :pagefind is a later generator phase
+
+ ;; ------------------------------------------------------------ comments ----
+ :comments {:provider :none}   ; :giscus needs :repo, :repo-id and :category-id
+
+ :analytics {:provider :none}
+
+ ;; Reserved, and inert at the pinned generator: it emits no sitemap.xml, no
+ ;; feeds, and no <link rel="canonical"> or hreflang alternates in <head>.
+ ;; (hreflang does appear as an attribute on the language-switcher links.)
+ ;; Declared anyway so the intent is recorded and the keys are already right
+ ;; when the generator grows them.
+ :seo {:sitemap true :hreflang true :x-default :primary}}
