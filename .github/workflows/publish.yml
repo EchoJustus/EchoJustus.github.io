@@ -44,13 +44,15 @@ jobs:
       # THIS `ref:` is the authoritative generator pin (D-14). site.edn carries no :ref;
       # its optional :generator :min-version is a compatibility floor the build asserts.
       #
-      # A sha is pinned rather than a tag only because clogem-press has not cut a
-      # release yet. Replace it with `ref: v0.1.0` once the generator tags v0.1.0,
-      # and add the matching `:generator :min-version` to site.edn in the same commit.
+      # A full 40-character sha is the intended long-term form of this pin: it is
+      # immutable, whereas a tag can be moved. It currently names clogem-press 0.1.1,
+      # matching the `:generator :min-version "0.1.1"` floor in site.edn. Pointing it
+      # at a release tag instead is optional. When you bump it, raise that floor in
+      # the same commit.
       - uses: actions/checkout@v7
         with:
           repository: EchoJustus/clogem-press
-          ref: d3b6f1792e0537f524b29838547444481f119c32
+          ref: 4105a40671348a0ca3db00db11d35d8634ec4d30
           path: generator
 
       - uses: DeLaGuardo/setup-clojure@13

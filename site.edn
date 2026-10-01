@@ -43,7 +43,7 @@
  ;; than trusting the green tick after changing this file.
  ;;
  ;; :repo itself is documentation. Nothing reads it.
- :generator {:repo "EchoJustus/clogem-press"}
+ :generator {:repo "EchoJustus/clogem-press" :min-version "0.1.1"}
 
  ;; --------------------------------------------------------------- langs ----
  :langs {:default  :en
