@@ -29,18 +29,13 @@
  ;; ----------------------------------------------------------- generator ----
  ;; D-14: the AUTHORITATIVE version pin is the `ref:` in publish.yml, because
  ;; the checkout has already happened by the time the generator reads this
- ;; file. What lives here is documentation, plus an optional compatibility
- ;; FLOOR (`:min-version`). No floor is declared yet: the generator has not cut
- ;; a release, so there is no version number to floor against. Add one — e.g.
- ;; :min-version "0.1.0" — in the same commit that moves publish.yml's `ref:`
- ;; from the pinned sha to a tag.
- ;;
- ;; Caveat at the pinned generator: DESIGN.md says the floor hard-fails the
- ;; build, but it does not. Config-level problems (a violated floor, an
- ;; unknown :langs :default, a bad :giscus value) are PRINTED and the build
- ;; then finishes and exits 0 — the config is validated outside the diagnostic
- ;; sink that turns errors into a non-zero exit. Read the workflow log rather
- ;; than trusting the green tick after changing this file.
+ ;; file. What lives here is documentation, plus a compatibility FLOOR:
+ ;; `:min-version "0.1.1"` matches the clogem-press 0.1.1 sha that publish.yml
+ ;; pins. A generator older than the floor is a config error: fm-fix, build
+ ;; and doctor all exit 1 and name both versions, so nothing is deployed and
+ ;; the previous deployment keeps serving. When you bump the `ref:`, raise
+ ;; this floor in the same commit. Write it as MAJOR.MINOR.PATCH without a
+ ;; leading `v`.
  ;;
  ;; :repo itself is documentation. Nothing reads it.
  :generator {:repo "EchoJustus/clogem-press" :min-version "0.1.1"}
@@ -77,8 +72,10 @@
  ;; ------------------------------------------------------------- content ----
  :content {:dir "content"
            :assets-dir "assets"
-           ;; Reserved. The pinned generator emits no /categories/, /tags/ or
-           ;; /archives/ index pages yet, so these three are inert today.
+           ;; Each toggle gates one index page, /categories/, /tags/ or
+           ;; /archives/, in all five languages (/<lang>/categories/ and so
+           ;; on). It also gates that page's card and links on the home
+           ;; pages, and fm-fix's auto-creation of its file in content/@pages/.
            :category true :tag true :archive true
            :category-text "Notes"        ; category for _posts/ with no subfolder
            :extend-frontmatter {}
