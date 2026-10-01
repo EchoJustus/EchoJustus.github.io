@@ -15,6 +15,7 @@ content/
   index.md                   the home page (home: true)
   01.Notes/01.welcome.md     the numbered knowledge-base tree
   _posts/…                   dated blog posts
+  @pages/                    the /categories/, /tags/ and /archives/ index pages (created by fm-fix)
 assets/                      static files, copied through to /assets/
 i18n/                        optional UI-string overrides (see i18n/README.md)
 overrides/                   reserved for extra CSS / ejected theme namespaces; not read yet
@@ -59,21 +60,63 @@ content/01.Notes/10.Basics/01.first-steps.md
 Dated blog posts, not part of the sidebar tree:
 
 ```
-content/_posts/2026-09-05-hello-world.md          → category from :content :category-text ("Notes")
-content/_posts/notes/2026-09-05-hello-world.md    → category "notes", a different article
+content/_posts/2026-09-05-hello-world.md            → category from :content :category-text ("Notes")
+content/_posts/journal/2026-09-05-hello-world.md    → category "journal", a different article
 ```
+
+Category names must differ by more than case, spacing or punctuation, because
+each one gets an index page at `/categories/<slug>/` and two names with the
+same slug would need the same URL. A `_posts/notes/` folder is therefore an
+error, not a second category: "notes" and the default "Notes" both slug to
+`notes`, and doctor reports `these category names share the URL slug`.
 
 No numbering. The `YYYY-MM-DD-` prefix is stripped from the displayed title but
 is part of the post's identity, so two posts may share a slug on different
 dates. Sorting uses the `date:` field in the front matter, not the filename —
 write both and keep them in agreement.
 
-### `@pages/`
+### `@pages/` and the index pages
 
-Reserved for generated index pages. You do not create these by hand — and note
-that the current generator does not create them either: `@pages/` is excluded
-from the scan, and any file you put there is **silently ignored**, with no
-warning. Leave it alone.
+The site has three index pages, each in all five languages:
+
+| Page | URL | Other languages |
+|---|---|---|
+| Categories, with one sub-page per category | `/categories/`, `/categories/<slug>/` | `/<lang>/categories/` |
+| Tags, with one sub-page per tag | `/tags/`, `/tags/<slug>/` | `/<lang>/tags/` |
+| Archive, by date | `/archives/` | `/<lang>/archives/` |
+
+Each one is switched on by its toggle in `site.edn`:
+`:content {:category true :tag true :archive true}`. A toggle also controls the
+page's card and links on the home pages. A tag sub-page exists only for a tag
+some article actually uses. While no article has tags, `/tags/` lists the
+articles with no tag bar, and the home pages show no Tags card.
+
+Each index page has a source file in `content/@pages/`: `categoriesPage.md`,
+`tagsPage.md` and `archivesPage.md`. `fm-fix` creates any that are missing for
+an enabled toggle, and they are committed like any other content. They hold
+only front matter by default:
+
+```markdown
+---
+tagsPage: true
+title: Tags
+permalink: /tags/
+article: false
+---
+```
+
+The generator honours what you put in them:
+
+- **`permalink`** moves the page. Change `/tags/` to `/labels/` and the page,
+  its `/<lang>/` copies and every link to it move with it.
+- **`title`** replaces the heading and the `<title>`.
+- **The body**, if you write one, is rendered above the list.
+
+Translate one the same way as an article, with a language suffix
+(`tagsPage.zh-Hans.md`). A language with no file of its own still gets the
+page at the same permalink, with the theme's translated title and no body.
+Deleting a file does not remove its page: the next `fm-fix` recreates it. To
+remove a page, turn its toggle off.
 
 ---
 
@@ -105,29 +148,36 @@ A near-miss suffix is a hard error rather than a silently-mistitled page:
 `zh-CN` is not one of the configured codes. Directories are never
 language-suffixed.
 
-### One trap: hyphenated slugs that look like language tags
+### Filenames that look like language tags
 
-The check that catches `zh-CN` recognizes anything shaped like a language tag —
-**two or three letters, a hyphen, then more** — so a perfectly ordinary
-filename can be rejected as a misspelled language:
+The check that catches `zh-CN` looks only at the **last dot-segment** before
+`.md`, and it fires only when that segment is close to one of the five
+configured codes. Ordinary hyphenated titles are fine. This is the output of
+`doctor` at the pinned generator:
 
 | Filename | Result |
 |---|---|
-| `02.api-design.md` | **error** — `api-design` read as a language tag |
-| `03.my-notes.md` | **error** — `my-notes` read as a language tag |
-| `05.re-frame.md` | **error** — `re-frame` read as a language tag |
-| `04.getting-started.md` | fine — `getting` is longer than three letters |
-| `06.slug-cases.md` | fine — same reason |
+| `02.api-design.md` | fine, titled `api-design` |
+| `03.my-notes.md` | fine, titled `my-notes` |
+| `05.re-frame.md` | fine, titled `re-frame` |
+| `04.getting-started.md` | fine, titled `getting-started` |
+| `06.slug-cases.md` | fine, titled `slug-cases` |
+| `09.ms-word.md`, `11.en-dash.md` | fine. A configured code followed by an ordinary word is still a title. |
+| `07.welcome.zh-CN.md` | **error**: unknown language `zh-CN`, did you mean `zh-Hans`? |
+| `10.en-US.md` | **error**: unknown language `en-US`, did you mean `en`? |
+| `12.ta-IN.md`, `15.ta-in.md` | **error**: unknown language, did you mean `ta`? |
+| `08.zh-hk.md`, `13.zh.md` | **error**: unknown language. A well-known variant of a configured language counts as a misspelling. |
 
-The failure is loud and the message names the file, so nothing ships broken —
-but it is surprising the first time. Three ways out, any of which works:
+A segment is treated as a misspelled language when it is one of those
+well-known variants (`zh`, `zh-CN`, `zh-hk`, `en-US`, …), when it is one edit
+away from a configured code and a hyphen is involved (`zh-Hanz`, `zh_Hans`),
+or when it is a configured language followed by a region or script code
+(`ta-IN`, `EN-NZ`). The error names the file, so nothing ships broken. If you
+really want such a title, either of these works:
 
-- **Reword** so the first hyphenated word is four letters or more:
-  `03.designing-apis.md`.
-- **Say the language explicitly**: `02.api-design.en.md` parses as the English
-  version of *api-design*, and is the right answer when you want to keep the
-  slug.
-- **Use dots instead of the hyphen**: `02.api.design.md` is titled `api.design`.
+- **Say the language explicitly**: `08.zh-hk.en.md` parses as the English
+  version of an article titled *zh-hk*.
+- **Use dots instead of the hyphen**: `08.zh.hk.md` is titled `zh.hk`.
 
 To translate the **home page**, add `content/index.zh-Hans.md`. To translate the
 theme's own chrome ("Previous", "On this page", …), see `i18n/README.md` —
@@ -250,7 +300,7 @@ The generator is not vendored here. Clone it beside this repository at the ref
 
 ```sh
 git clone https://github.com/EchoJustus/clogem-press ../clogem-press
-cd ../clogem-press && git checkout d3b6f1792e0537f524b29838547444481f119c32 && cd -
+cd ../clogem-press && git checkout 4105a40671348a0ca3db00db11d35d8634ec4d30 && cd -
 
 bb --config ../clogem-press/bb.edn doctor          # report problems, build nothing
 bb --config ../clogem-press/bb.edn fm-fix          # fill in front matter, write it back
@@ -278,34 +328,35 @@ Pushing to `main` under any of `content/`, `assets/`, `i18n/`, `overrides/`,
 checks it is under the 500 MB budget, and deploys it to GitHub Pages. It can
 also be run by hand from the Actions tab (`workflow_dispatch`).
 
-The generator version is pinned by the `ref:` in that workflow, and that is the
-**only** place the version lives. Bumping it is a one-line change; `site.edn`
-deliberately carries no ref.
+The generator version is pinned by the `ref:` in that workflow, a full commit
+sha. That is the authoritative pin. `site.edn` carries no ref, only a floor,
+`:generator :min-version "0.1.1"`, which the generator checks against its own
+version. When you bump the `ref:`, raise the floor in the same commit.
 
 ---
 
 ## What the pinned generator does not do yet
 
-`clogem-press` is at `0.1.0-phase1`. The site it builds today is real and
-correct, but several things `site.edn` accepts are documented intent rather
+`clogem-press` is pinned at `0.1.1`. The site it builds today is real and
+correct, but a few things `site.edn` accepts are documented intent rather
 than working features. Knowing which is which saves you debugging something
 that was never wired up:
 
 | Not implemented at the pinned ref | Consequence |
 |---|---|
-| Category, tag and archive index pages | `:content {:category true :tag true :archive true}` is inert; there is no `/categories/` page to link to. |
-| `sitemap.xml`, Atom feeds, `<link rel="canonical">`, hreflang alternates in `<head>` | `:seo` is inert. `hreflang` still appears as an attribute on language-switcher links. |
-| Pagefind search, giscus comments, analytics | The three `:provider :none` settings are the only ones that do anything. |
+| `sitemap.xml` and Atom/RSS feeds | `:seo {:sitemap true}` is inert. |
+| `<link rel="canonical">` and hreflang alternates in `<head>` | `:seo {:hreflang true :x-default …}` is inert. `hreflang` still appears as an attribute on the language-switcher links. |
+| Pagefind search | `:search {:provider :none}` is the only setting that does anything. |
+| giscus comments | `:comments {:provider :none}` is the only setting that does anything. A `:giscus` locale value is still validated. |
+| Analytics | `:analytics {:provider :none}` is the only setting that does anything. |
 | `overrides/` | The directory is a build trigger but nothing reads it. |
-| `@pages/` generation | Files placed there are silently ignored. |
-| Sidebar tree, TOC bar, `::: tip` containers | The sidebar is flat; `:theme :sidebar-open` is inert. |
-| A language switcher on article pages | The switcher is emitted only when the article has more than one language version. On a single-language site it appears on the five home pages and nowhere else. |
 
-**One of these is worth real caution.** Problems in `site.edn` — a violated
-`:generator :min-version` floor, a `:langs :default` that names no configured
-locale, an invalid `:giscus` value — are reported as errors on the console but
-**do not fail the build**. The site is published and the job exits 0, and
-`bb doctor` likewise prints the error and still reports "0 error(s)". Content
-errors (a duplicate sidebar number, an unknown language suffix, front matter
-that is not a mapping) *do* fail correctly. So after changing `site.edn`, read
-the workflow log rather than trusting the green tick.
+### Config errors stop the publish
+
+Problems in `site.edn` are errors, and `fm-fix`, `build` and `doctor` all exit 1
+on them. That covers a violated `:generator :min-version` floor, a
+`:langs :default` that names no configured locale, and an invalid `:giscus`
+value. In CI, `fm-fix` is the first step to run, so the job fails there.
+Nothing is built and nothing is deployed, and the previous deployment keeps
+serving. Run `doctor` locally after changing `site.edn`. It lists every
+config error at once.
