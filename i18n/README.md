@@ -29,8 +29,8 @@ why this directory can stay empty.
 
 ```clojure
 ;; i18n/en.edn — override two strings, inherit the rest.
-{:index/recent "Latest"
- :page/toc     "Contents"}
+{:index/updates "Latest"
+ :page/toc       "Contents"}
 ```
 
 Any other file in this directory is ignored — the generator looks up
@@ -65,7 +65,6 @@ disappears.
 | `:index/categories` | `Categories` |
 | `:index/tags` | `Tags` |
 | `:index/archives` | `Archive` |
-| `:index/recent` | `Recent articles` |
 | `:index/count` | `Articles: {{n}}` |
 | `:container/tip` | `TIP` |
 | `:container/warning` | `WARNING` |
@@ -73,6 +72,24 @@ disappears.
 | `:container/note` | `NOTE` |
 | `:container/details` | `Details` |
 | `:comments/title` | `Comments` |
+| `:index/all` | `All` |
+| `:index/page` | `Page {{n}} of {{total}}` |
+| `:index/prev-page` | `Previous page` |
+| `:index/next-page` | `Next page` |
+| `:index/empty` | `No articles yet.` |
+| `:index/sticky` | `Pinned` |
+| `:index/read-more` | `Read more` |
+| `:index/updates` | `Recently updated` |
+| `:index/more` | `More` |
+| `:index/category-title` | `Category: {{name}}` |
+| `:index/tag-title` | `Tag: {{name}}` |
+| `:page/breadcrumbs` | `You are here` |
+| `:page/author` | `Author` |
+| `:page/date` | `Date` |
+| `:page/categories` | `Categories` |
+| `:page/tags` | `Tags` |
+| `:page/sidebar` | `Sidebar` |
+| `:container/theorem` | `Theorem` |
 
 The authoritative list is the generator's own
 `src/clogem/theme/resources/i18n/<lang>.edn`; the theme ships a full set for all

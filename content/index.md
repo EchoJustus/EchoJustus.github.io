@@ -16,7 +16,7 @@ does not act on it — files directly under `content/` are not scanned as
 articles in the first place, so this file is already exempt.
 
 The site is published in five languages — English, 简体中文, 繁體中文, Bahasa
-Melayu and தமிழ் — and the language switcher sits in the navbar of every home
+Melayu and தமிழ் — and the language switcher sits in the navbar of every
 page. A page appears in a language when a file for that language exists;
 nothing is machine-translated. To give this home page a Chinese version, add
 `content/index.zh-Hans.md` beside this file.
