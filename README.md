@@ -326,9 +326,12 @@ the binary's path. To use a `pagefind_extended` you installed yourself, set
 `CLOGEM_PAGEFIND=/path/to/pagefind_extended`; that skips the download and the
 hash check. A failed download or Pagefind run fails the build (exit 1).
 
-Babashka 1.13.0 or newer is the only prerequisite
+Babashka 1.13.0 or newer is the only thing you install
 (<https://github.com/babashka/babashka#installation>), plus `tar` to unpack
-the Pagefind download; the generator resolves no dependencies of its own.
+the Pagefind download. A build with search downloads and verifies Pagefind as
+described above (`CLOGEM_TOOLS_DIR` overrides where it is cached). `dev` may
+fetch Babashka's `org.babashka/fswatcher` pod for file watching, and falls back
+to polling if it cannot.
 
 Build into `/tmp` or another directory outside the repository. Nothing generated
 belongs in git.
@@ -359,10 +362,16 @@ The index is built at publish time, so a new article is searchable once its
 publish run has deployed.
 
 Only **article and catalogue pages** are indexed: the home pages, the
-categories, tags and archive pages, and their `/page/N/` pages are not. There
-is one index per language, and a reader searches **only the language of the
-page they are on**. A Chinese reader does not find an article that exists only
-in English, and the reverse. Searching across languages is not available yet.
+categories, tags and archive pages, and their `/page/N/` pages are not. Each
+language with at least one indexed page gets its own index. A page searches
+**one index, never a merge**: its own language's or, while its language has no
+index yet, the largest one. On this site today that is English, the only
+language with articles, so Chinese, Malay and Tamil pages search the English
+articles. Once a language has an article of its own, its pages search only
+that language. A page's language is its `<html lang>`. zh-Hant pages look for
+a `zh-hant` index; the `lang="zh-TW"` on their `<pagefind-config>` only
+selects Pagefind's Traditional Chinese interface text. Searching across
+languages is not available yet.
 
 ## Comments
 
@@ -373,9 +382,10 @@ Catalogue pages, the home pages and the index pages have no comments.
 - **One thread per article.** Every language version of an article shows the
   same thread, keyed on the article's bare permalink (`/pages/xxxxxx/`, no
   language prefix).
-- **A thread is created on the first comment.** Until someone comments there
-  is no discussion. The first comment creates one whose search term is the
-  permalink.
+- **A thread is created by the first comment or the first reaction.**
+  Reactions are on, so reacting to an article creates its discussion too.
+  Until then there is none. giscus titles the new discussion with the bare
+  permalink and puts that permalink's sha1 in its body.
 - **Moderate in GitHub Discussions.** Edit, hide, lock or delete comments and
   threads there, under Announcements. There is no separate admin page.
 - **Do not edit the `sha1:` marker.** giscus runs in strict mode: it finds an
@@ -392,7 +402,10 @@ Catalogue pages, the home pages and the index pages have no comments.
 - **Readers need a GitHub account to comment.** Anyone can read the threads.
 
 The repository, category and their ids are in `site.edn` under `:comments`.
-If you rename or recreate the category, fetch the new ids from
+giscus finds a thread by searching the category by **name** (`:category`) and
+creates new ones by **id** (`:category-id`). If you rename the category, its
+id does not change, so update `:category` only. If you delete and recreate
+it, update both `:category` and `:category-id`, taking the new id from
 <https://giscus.app>.
 
 ## Language preference banner
@@ -408,8 +421,10 @@ chosen language**, not the page's. A reader who picked 简体中文 sees
 "本页也有简体中文版本。" with a "阅读简体中文版 →" link; the English wording is
 "This page is also available in {{lang}}." The text comes from the
 `:banner/…` strings (see `i18n/README.md`).
-Today only the home and index pages exist in more than one language here, so
-those are where it can appear until an article is translated.
+It never appears on a single category or tag page such as
+`/categories/notes/`, or on a `…/page/N/` page. Today no article is
+translated, so it can appear only on `/`, `/categories/`, `/tags/` and
+`/archives/`; a translated article will get it at its bare URL.
 
 The reader dismisses it with the × button. The note then stays away for that
 page in that browser (the 100 most recently dismissed pages are remembered).
@@ -437,22 +452,24 @@ Each publish writes, from `:site :url` in `site.edn`:
 Each feed holds the 20 newest articles in its language; a language with no
 articles yet has an empty feed. `robots.txt` allows everything and names the
 sitemap. Every page also links its language's feed, and carries a canonical
-link, hreflang and `x-default` alternates and `og:locale` in its `<head>`.
+link and `og:locale` in its `<head>`. Every page except pagination pages
+(`…/page/N/`) also carries hreflang and `x-default` alternates; a pagination
+page's canonical points at itself, and it has no alternates.
 
 ---
 
 ## What the pinned generator does not do yet
 
 `clogem-press` is pinned at `0.2.0`. Search, comments, feeds, the sitemap and
-the SEO links all work. A few things `site.edn` or the workflow mention are
-still documented intent rather than working features. Knowing which is which
-saves you debugging something that was never wired up:
+the SEO links all work. A few things the generator's config schema
+(`config.example.edn`) names, or that you might expect, are not done by 0.2.0.
+Knowing which is which saves you debugging something that was never wired up:
 
 | Not implemented at the pinned ref | Consequence |
 |---|---|
 | Analytics | `:analytics {:provider :none}` is the only setting that does anything. |
 | `overrides/` | The directory is a build trigger but nothing reads it. |
-| Cross-language search | Search covers the language of the current page only. |
+| Cross-language search | A page searches one language's index, never several. A language with no indexed pages yet searches the largest index (English today). |
 | IndexNow | No IndexNow ping is sent. Submit the sitemap to search engines yourself if you want faster indexing. |
 
 ### Config errors stop the publish
@@ -464,7 +481,7 @@ on them. That covers:
 - a `:langs :default` that names no configured locale;
 - an invalid `:giscus` locale value;
 - a `:comments :repo` that is not in `owner/name` form (a URL, for example);
-- a missing `:comments :repo-id`, `:category` or `:category-id`;
+- a missing `:comments :repo`, `:repo-id`, `:category` or `:category-id`;
 - a `:theme :default-mode` other than `:auto`, `:light`, `:dark` or `:read`;
 - an `:i18n :preference` other than `:banner`, `:redirect` or `:ignore`;
 - a `:site :url` with no scheme, such as `"echojustus.github.io"`;

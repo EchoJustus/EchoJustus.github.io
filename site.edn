@@ -109,12 +109,13 @@
         :link "/"}]
 
  ;; -------------------------------------------------------------- search ----
- ;; Pagefind, run by `build` over the output: one index per page language, and
- ;; only article and catalogue bodies are indexed (homes and index pages are
- ;; not). A reader searches their current language only; cross-language search
- ;; is deferred to a later generator release. A failed Pagefind fetch or run
- ;; fails the build, so nothing is deployed and the previous deployment keeps
- ;; serving.
+ ;; Pagefind, run by `build` over the output. Only article and catalogue bodies
+ ;; are indexed (homes and index pages are not), and each language with at
+ ;; least one indexed page gets its own index. A page searches one index, never
+ ;; a merge: its own language's or, while that language has none yet, the
+ ;; largest (English here today). Cross-language search is deferred to a later
+ ;; generator release. A failed Pagefind fetch or run fails the build, so
+ ;; nothing is deployed and the previous deployment keeps serving.
  :search   {:provider :pagefind}
 
  ;; ------------------------------------------------------------ comments ----
@@ -133,8 +134,9 @@
 
  ;; What the build emits: /sitemap.xml with hreflang alternates; /robots.txt
  ;; naming it; Atom feeds at /feed.xml and /<lang>/feed.xml; and in every
- ;; page's <head> a canonical link, hreflang and x-default alternates, plus
- ;; og:locale. All but og:locale are absolute URLs built on :site :url; a blank
- ;; :url skips them (a warning, not an error).
+ ;; page's <head> a canonical link and og:locale, plus hreflang and x-default
+ ;; alternates on every page except pagination pages (…/page/N/), which are
+ ;; self-canonical only. All but og:locale are absolute URLs built on
+ ;; :site :url; a blank :url skips them (a warning, not an error).
  :seo {:sitemap true :hreflang true :x-default :primary
        :feeds true}}
