@@ -19,6 +19,7 @@ content/
 assets/                      static files, copied through to /assets/
 i18n/                        optional UI-string overrides (see i18n/README.md)
 overrides/                   reserved for extra CSS / ejected theme namespaces; not read yet
+giscus.json                  which sites may embed this repo's comment threads (see "Comments")
 .github/workflows/publish.yml
 ```
 
@@ -300,20 +301,37 @@ The generator is not vendored here. Clone it beside this repository at the ref
 
 ```sh
 git clone https://github.com/EchoJustus/clogem-press ../clogem-press
-cd ../clogem-press && git checkout 4105a40671348a0ca3db00db11d35d8634ec4d30 && cd -
+cd ../clogem-press && git checkout 03249b79a34b5c5d42ec8be831c89e879a4ed608 && cd -
 
 bb --config ../clogem-press/bb.edn doctor          # report problems, build nothing
 bb --config ../clogem-press/bb.edn fm-fix          # fill in front matter, write it back
 bb --config ../clogem-press/bb.edn build --out /tmp/dist
-bb --config ../clogem-press/bb.edn serve --dir /tmp/dist
+bb --config ../clogem-press/bb.edn serve --dir /tmp/dist   # http://localhost:1888/
 bb --config ../clogem-press/bb.edn dev             # build, serve, rebuild on change
 ```
 
 `bb --config … build --no-write` is a read-only build: it touches no source
 file and takes its URLs from `permalinks.edn`.
 
-Babashka is the only prerequisite (<https://github.com/babashka/babashka#installation>);
-the generator resolves no dependencies of its own.
+`bb --config … build --no-search` is a quicker build with no search index and
+no search box. `dev --no-search` does the same for every rebuild.
+
+The first build with search downloads Pagefind 1.5.2 (`pagefind_extended`),
+checks it against the sha256 the generator pins for your platform, and caches
+it under `~/.cache/clogem-press/tools/pagefind/` (under
+`$XDG_CACHE_HOME/clogem-press/tools/pagefind/` if that is set). Later builds
+reuse it, re-verifying it each time.
+`bb --config ../clogem-press/bb.edn fetch-tool` does only that step and prints
+the binary's path. To use a `pagefind_extended` you installed yourself, set
+`CLOGEM_PAGEFIND=/path/to/pagefind_extended`; that skips the download and the
+hash check. A failed download or Pagefind run fails the build (exit 1).
+
+Babashka 1.13.0 or newer is the only thing you install
+(<https://github.com/babashka/babashka#installation>), plus `tar` to unpack
+the Pagefind download. A build with search downloads and verifies Pagefind as
+described above (`CLOGEM_TOOLS_DIR` overrides where it is cached). `dev` may
+fetch Babashka's `org.babashka/fswatcher` pod for file watching, and falls back
+to polling if it cannot.
 
 Build into `/tmp` or another directory outside the repository. Nothing generated
 belongs in git.
@@ -329,34 +347,151 @@ checks it is under the 500 MB budget, and deploys it to GitHub Pages. It can
 also be run by hand from the Actions tab (`workflow_dispatch`).
 
 The generator version is pinned by the `ref:` in that workflow, a full commit
-sha. That is the authoritative pin. `site.edn` carries no ref, only a floor,
-`:generator :min-version "0.1.1"`, which the generator checks against its own
+sha, the commit clogem-press's `v0.2.0` tag points at. That is the
+authoritative pin. `site.edn` carries no ref, only a floor,
+`:generator :min-version "0.2.0"`, which the generator checks against its own
 version. When you bump the `ref:`, raise the floor in the same commit.
+
+---
+
+## Search
+
+Every page has a search button in the navbar. It opens Pagefind's search
+dialog, which searches as you type and shows a title and an excerpt per hit.
+The index is built at publish time, so a new article is searchable once its
+publish run has deployed.
+
+Only **article and catalogue pages** are indexed: the home pages, the
+categories, tags and archive pages, and their `/page/N/` pages are not. Each
+language with at least one indexed page gets its own index. A page searches
+**one index, never a merge**: its own language's or, while its language has no
+index yet, the largest one. On this site today that is English, the only
+language with articles, so Chinese, Malay and Tamil pages search the English
+articles. Once a language has an article of its own, its pages search only
+that language. A page's language is its `<html lang>`. zh-Hant pages look for
+a `zh-hant` index; the `lang="zh-TW"` on their `<pagefind-config>` only
+selects Pagefind's Traditional Chinese interface text. Searching across
+languages is not available yet.
+
+## Comments
+
+Each article ends with a [giscus](https://giscus.app) comment widget, backed
+by this repository's GitHub Discussions in the **Announcements** category.
+Catalogue pages, the home pages and the index pages have no comments.
+
+- **One thread per article.** Every language version of an article shows the
+  same thread, keyed on the article's bare permalink (`/pages/xxxxxx/`, no
+  language prefix).
+- **A thread is created by the first comment or the first reaction.**
+  Reactions are on, so reacting to an article creates its discussion too.
+  Until then there is none. giscus titles the new discussion with the bare
+  permalink and puts that permalink's sha1 in its body.
+- **Moderate in GitHub Discussions.** Edit, hide, lock or delete comments and
+  threads there, under Announcements. There is no separate admin page.
+- **Do not edit the `sha1:` marker.** giscus runs in strict mode: it finds an
+  article's thread by a `<!-- sha1: … -->` marker in the discussion **body**,
+  not by the title. Editing or removing that marker detaches the thread, and
+  the next comment opens a new one. Retitling a discussion alone does not move
+  it to another article.
+- **Turn comments off for one article** with `comment: false` in its front
+  matter (on the version served at the bare URL, normally English).
+- **`giscus.json`**, at the repository root, lists the sites allowed to embed
+  these threads: `https://echojustus.github.io`, and `http://localhost:<port>`
+  so comments work under `serve` and `dev`. Any other site gets an error in
+  place of the widget. giscus reads this file from the default branch.
+- **Readers need a GitHub account to comment.** Anyone can read the threads.
+
+The repository, category and their ids are in `site.edn` under `:comments`.
+giscus finds a thread by searching the category by **name** (`:category`) and
+creates new ones by **id** (`:category-id`). If you rename the category, its
+id does not change, so update `:category` only. If you delete and recreate
+it, update both `:category` and `:category-id`, taking the new id from
+<https://giscus.app>.
+
+## Language preference banner
+
+When a reader picks a language, with the navbar language switcher or the
+language links under an article's title, the browser remembers it. Nothing
+else sets it: the browser's own language setting is not consulted.
+
+After that, a page opened at its **bare URL** (one with no `/<lang>/` prefix,
+such as `/pages/xxxxxx/` or `/`) that also exists in the chosen language shows
+a note at the top of the main column offering that version, **written in the
+chosen language**, not the page's. A reader who picked 简体中文 sees
+"本页也有简体中文版本。" with a "阅读简体中文版 →" link; the English wording is
+"This page is also available in {{lang}}." The text comes from the
+`:banner/…` strings (see `i18n/README.md`).
+It never appears on a single category or tag page such as
+`/categories/notes/`, or on a `…/page/N/` page. Today no article is
+translated, so it can appear only on `/`, `/categories/`, `/tags/` and
+`/archives/`; a translated article will get it at its bare URL.
+
+The reader dismisses it with the × button. The note then stays away for that
+page in that browser (the 100 most recently dismissed pages are remembered).
+
+To change the behaviour, set `:i18n :preference` in `site.edn`:
+
+- `:banner` (current): the note described above.
+- `:redirect`: go straight to the chosen language's version, before the page
+  draws. Only bare URLs redirect, and a `#anchor` or `?query` is dropped.
+- `:ignore`: do nothing.
+
+Any other value is a config error.
+
+## Feeds and sitemap
+
+Each publish writes, from `:site :url` in `site.edn`:
+
+| File | URL |
+|---|---|
+| Atom feed, English | <https://echojustus.github.io/feed.xml> |
+| Atom feed, other languages | `https://echojustus.github.io/<lang>/feed.xml`, e.g. `/zh-Hans/feed.xml` |
+| Sitemap, with hreflang alternates | <https://echojustus.github.io/sitemap.xml> |
+| robots.txt | <https://echojustus.github.io/robots.txt> |
+
+Each feed holds the 20 newest articles in its language; a language with no
+articles yet has an empty feed. `robots.txt` allows everything and names the
+sitemap. Every page also links its language's feed, and carries a canonical
+link and `og:locale` in its `<head>`. Every page except pagination pages
+(`…/page/N/`) also carries hreflang and `x-default` alternates; a pagination
+page's canonical points at itself, and it has no alternates.
 
 ---
 
 ## What the pinned generator does not do yet
 
-`clogem-press` is pinned at `0.1.1`. The site it builds today is real and
-correct, but a few things `site.edn` accepts are documented intent rather
-than working features. Knowing which is which saves you debugging something
-that was never wired up:
+`clogem-press` is pinned at `0.2.0`. Search, comments, feeds, the sitemap and
+the SEO links all work. A few things the generator's config schema
+(`config.example.edn`) names, or that you might expect, are not done by 0.2.0.
+Knowing which is which saves you debugging something that was never wired up:
 
 | Not implemented at the pinned ref | Consequence |
 |---|---|
-| `sitemap.xml` and Atom/RSS feeds | `:seo {:sitemap true}` is inert. |
-| `<link rel="canonical">` and hreflang alternates in `<head>` | `:seo {:hreflang true :x-default …}` is inert. `hreflang` still appears as an attribute on the language-switcher links. |
-| Pagefind search | `:search {:provider :none}` is the only setting that does anything. |
-| giscus comments | `:comments {:provider :none}` is the only setting that does anything. A `:giscus` locale value is still validated. |
 | Analytics | `:analytics {:provider :none}` is the only setting that does anything. |
 | `overrides/` | The directory is a build trigger but nothing reads it. |
+| Cross-language search | A page searches one language's index, never several. A language with no indexed pages yet searches the largest index (English today). |
+| IndexNow | No IndexNow ping is sent. Submit the sitemap to search engines yourself if you want faster indexing. |
 
 ### Config errors stop the publish
 
 Problems in `site.edn` are errors, and `fm-fix`, `build` and `doctor` all exit 1
-on them. That covers a violated `:generator :min-version` floor, a
-`:langs :default` that names no configured locale, and an invalid `:giscus`
-value. In CI, `fm-fix` is the first step to run, so the job fails there.
+on them. That covers:
+
+- a violated `:generator :min-version` floor;
+- a `:langs :default` that names no configured locale;
+- an invalid `:giscus` locale value;
+- a `:comments :repo` that is not in `owner/name` form (a URL, for example);
+- a missing `:comments :repo`, `:repo-id`, `:category` or `:category-id`;
+- a `:theme :default-mode` other than `:auto`, `:light`, `:dark` or `:read`;
+- an `:i18n :preference` other than `:banner`, `:redirect` or `:ignore`;
+- a `:site :url` with no scheme, such as `"echojustus.github.io"`;
+- an `:i18n :fallback` that is not a vector of configured languages or
+  `:site-default`.
+
+A **blank** `:site :url` is only a warning: the site still builds, but with no
+canonical or hreflang links, no sitemap, no feeds and no robots.txt.
+
+In CI, `fm-fix` is the first step to run, so the job fails there.
 Nothing is built and nothing is deployed, and the previous deployment keeps
 serving. Run `doctor` locally after changing `site.edn`. It lists every
 config error at once.

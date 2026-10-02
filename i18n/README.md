@@ -45,9 +45,18 @@ that file first.
 
 ## The keys
 
-These are the theme's chrome strings and their English defaults. `{{...}}` is an
-interpolation slot; keep it in your translation or the value it carries
-disappears.
+These are the theme's chrome strings and their English defaults, in the
+order the generator's `en.edn` lists them. `{{...}}` is an interpolation slot;
+keep it in your translation or the value it carries disappears. The `:search/…`
+keys use Pagefind's own placeholders instead, `[SEARCH_TERM]`, `[COUNT]` and
+`[DIFFERENT_TERM]`; keep those too.
+
+The `:search/…` strings label the search dialog. Pagefind ships its own
+strings for every configured language except Malay, so those keys are used
+for `ms` pages, and for any language whose `i18n/<lang>.edn` overrides at
+least one `:search/…` key. The `:banner/…` strings make up the "also
+available" note, and are always shown in the language the reader chose, not
+the language of the page.
 
 | Key | English default |
 |---|---|
@@ -90,6 +99,34 @@ disappears.
 | `:page/tags` | `Tags` |
 | `:page/sidebar` | `Sidebar` |
 | `:container/theorem` | `Theorem` |
+| `:search/placeholder` | `Search` |
+| `:search/clear-search` | `Clear` |
+| `:search/load-more` | `Load more results` |
+| `:search/search-label` | `Search this site` |
+| `:search/filters-label` | `Filters` |
+| `:search/zero-results` | `No results for [SEARCH_TERM]` |
+| `:search/many-results` | `[COUNT] results for [SEARCH_TERM]` |
+| `:search/one-result` | `[COUNT] result for [SEARCH_TERM]` |
+| `:search/total-zero-results` | `No results` |
+| `:search/total-one-result` | `[COUNT] result` |
+| `:search/total-many-results` | `[COUNT] results` |
+| `:search/alt-search` | `No results for [SEARCH_TERM]. Showing results for [DIFFERENT_TERM] instead` |
+| `:search/search-suggestion` | `No results for [SEARCH_TERM]. Try one of the following searches:` |
+| `:search/searching` | `Searching for [SEARCH_TERM]...` |
+| `:search/results-label` | `Search results` |
+| `:search/keyboard-navigate` | `navigate` |
+| `:search/keyboard-select` | `select` |
+| `:search/keyboard-clear` | `clear` |
+| `:search/keyboard-close` | `close` |
+| `:search/keyboard-search` | `search` |
+| `:search/error-search` | `Search failed` |
+| `:search/filter-selected-one` | `[COUNT] selected` |
+| `:search/filter-selected-many` | `[COUNT] selected` |
+| `:search/input-hint` | `Results will appear as you type` |
+| `:search/loading` | `Loading` |
+| `:banner/available` | `This page is also available in {{lang}}.` |
+| `:banner/read` | `Read in {{lang}} →` |
+| `:banner/dismiss` | `Dismiss` |
 
 The authoritative list is the generator's own
 `src/clogem/theme/resources/i18n/<lang>.edn`; the theme ships a full set for all
@@ -101,9 +138,9 @@ For a requested language, a string is looked up in this order and the first hit
 wins:
 
 1. your `i18n/<requested-lang>.edn`, then the theme's defaults for that language
-2. the same, for `:langs :default` (English)
-3. the same, for `en`
-4. the key itself
+2. the same, for each language in `:i18n :fallback`, which `site.edn` leaves
+   at its default `[:site-default :en]`: `:langs :default` (English), then `en`
+3. the key itself
 
 A missing key is reported as a warning while `:i18n :missing-key` is `:warn` in
 `site.edn`.
