@@ -9,9 +9,10 @@
 ;; either a plain string (same in all languages) or a map keyed by language
 ;; code; the fallback chain is
 ;;
-;;     requested lang → :langs :default → :en → the key itself
+;;     requested lang → :i18n :fallback (default [:site-default :en]) → the key itself
 ;;
-;; so there is exactly one rule to learn (DESIGN.md §6.5).
+;; (:site-default is :langs :default), so there is exactly one rule to learn
+;; (DESIGN.md §6.5).
 
 {;; ---------------------------------------------------------------- site ----
  :site {:title       "EchoJustus"          ; a plain string: identical in all
@@ -30,15 +31,15 @@
  ;; D-14: the AUTHORITATIVE version pin is the `ref:` in publish.yml, because
  ;; the checkout has already happened by the time the generator reads this
  ;; file. What lives here is documentation, plus a compatibility FLOOR:
- ;; `:min-version "0.1.1"` matches the clogem-press 0.1.1 sha that publish.yml
- ;; pins. A generator older than the floor is a config error: fm-fix, build
- ;; and doctor all exit 1 and name both versions, so nothing is deployed and
- ;; the previous deployment keeps serving. When you bump the `ref:`, raise
- ;; this floor in the same commit. Write it as MAJOR.MINOR.PATCH without a
- ;; leading `v`.
+ ;; `:min-version "0.2.0"` matches the clogem-press 0.2.0 sha (the commit the
+ ;; tag v0.2.0 points at) that publish.yml pins. A generator older than the
+ ;; floor is a config error: fm-fix, build and doctor all exit 1 and name both
+ ;; versions, so nothing is deployed and the previous deployment keeps serving.
+ ;; When you bump the `ref:`, raise this floor in the same commit. Write it as
+ ;; MAJOR.MINOR.PATCH without a leading `v`.
  ;;
  ;; :repo itself is documentation. Nothing reads it.
- :generator {:repo "EchoJustus/clogem-press" :min-version "0.1.1"}
+ :generator {:repo "EchoJustus/clogem-press" :min-version "0.2.0"}
 
  ;; --------------------------------------------------------------- langs ----
  :langs {:default  :en
@@ -55,8 +56,9 @@
           ;; :giscus for ms/ta MUST be "en". giscus has no locale for either,
           ;; and data-lang is routed into the widget's iframe URL — an
           ;; unroutable value 404s the iframe and no comment widget renders at
-          ;; all. The build validates this whenever the key is present, even
-          ;; while :comments :provider is :none (DESIGN.md §6.8).
+          ;; all. The build validates this whenever the key is present, and
+          ;; with :comments :provider :giscus every locale must have one
+          ;; (DESIGN.md §6.8).
           :ms      {:label "Bahasa Melayu" :html-lang "ms"      :giscus "en"    :dir :ltr}
           :ta      {:label "தமிழ்"          :html-lang "ta"      :giscus "en"    :dir :ltr}}}
 
@@ -67,7 +69,13 @@
         :prefix-default? false
         :missing-key   :warn
         :category-labels {}
-        :show-fallback-notice true}
+        :show-fallback-notice true
+        ;; Once a reader picks a language with the navbar switcher or the
+        ;; per-article variant bar, a page at its BARE URL that also exists in
+        ;; that language shows a dismissible "also available in <L>" note,
+        ;; written in L. :redirect (go straight to the L variant) and :ignore
+        ;; (do nothing) are the alternatives; any other value is a config error.
+        :preference :banner}
 
  ;; ------------------------------------------------------------- content ----
  :content {:dir "content"
@@ -101,16 +109,32 @@
         :link "/"}]
 
  ;; -------------------------------------------------------------- search ----
- :search   {:provider :none}   ; :pagefind is a later generator phase
+ ;; Pagefind, run by `build` over the output: one index per page language, and
+ ;; only article and catalogue bodies are indexed (homes and index pages are
+ ;; not). A reader searches their current language only; cross-language search
+ ;; is deferred to a later generator release. A failed Pagefind fetch or run
+ ;; fails the build, so nothing is deployed and the previous deployment keeps
+ ;; serving.
+ :search   {:provider :pagefind}
 
  ;; ------------------------------------------------------------ comments ----
- :comments {:provider :none}   ; :giscus needs :repo, :repo-id and :category-id
+ ;; giscus, backed by this repo's Discussions. The ids come from
+ ;; https://giscus.app. Every language variant of an article shares one thread,
+ ;; keyed on its bare permalink (/pages/xxxxxx/). `comment: false` in an
+ ;; article's front matter (on its primary variant) turns comments off for
+ ;; that article. Catalogues, homes and index pages never carry comments.
+ :comments {:provider    :giscus
+            :repo        "EchoJustus/EchoJustus.github.io"
+            :repo-id     "R_kgDOT47Y5Q"
+            :category    "Announcements"
+            :category-id "DIC_kwDOT47Y5c4DG2Ks"}
 
  :analytics {:provider :none}
 
- ;; Reserved, and inert at the pinned generator: it emits no sitemap.xml, no
- ;; feeds, and no <link rel="canonical"> or hreflang alternates in <head>.
- ;; (hreflang does appear as an attribute on the language-switcher links.)
- ;; Declared anyway so the intent is recorded and the keys are already right
- ;; when the generator grows them.
- :seo {:sitemap true :hreflang true :x-default :primary}}
+ ;; What the build emits: /sitemap.xml with hreflang alternates; /robots.txt
+ ;; naming it; Atom feeds at /feed.xml and /<lang>/feed.xml; and in every
+ ;; page's <head> a canonical link, hreflang and x-default alternates, plus
+ ;; og:locale. All but og:locale are absolute URLs built on :site :url; a blank
+ ;; :url skips them (a warning, not an error).
+ :seo {:sitemap true :hreflang true :x-default :primary
+       :feeds true}}
