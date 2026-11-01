@@ -132,6 +132,24 @@ The authoritative list is the generator's own
 `src/clogem/theme/resources/i18n/<lang>.edn`; the theme ships a full set for all
 five languages, so overriding is optional everywhere.
 
+## Language names
+
+The language dropdown, the language links under an article's title and the
+search filter name every language but the page's as its own name, then its name
+in the page's language: `简体中文 (Simplified Chinese)` on an English page,
+`English (英文)` on a Simplified Chinese one. The bracketed names are
+`:lang/names`, the one value that is a map rather than a string, so you write
+only the names you change:
+
+```clojure
+;; i18n/zh-Hans.edn: Tamil as Malaysia and Singapore write it
+{:lang/names {:ta "淡米尔文"}}
+```
+
+`nil` drops a bracket (`{:lang/names {:zh-Hant nil}}` shows plain 繁體中文).
+These names are not looked up along the fallback below: a language with no
+name in the page's language shows its own name alone.
+
 ## Resolution order
 
 For a requested language, a string is looked up in this order and the first hit

@@ -24,15 +24,18 @@
                       :zh-Hant "筆記、指南與文章。"
                       :ms      "Nota, panduan, dan catatan."
                       :ta      "குறிப்புகள், வழிகாட்டிகள் மற்றும் இடுகைகள்."}
-        :url         "https://echojustus.github.io"   ; no trailing slash
+        ;; The custom domain set in Settings → Pages (with Enforce HTTPS);
+        ;; echojustus.github.io redirects here. Canonical and hreflang links,
+        ;; the sitemap, the feeds and robots.txt are all built from it.
+        :url         "https://blog.cloyez.com"        ; no trailing slash
         :base        "/"}                             ; a user site is served at the root
 
  ;; ----------------------------------------------------------- generator ----
  ;; D-14: the AUTHORITATIVE version pin is the `ref:` in publish.yml, because
  ;; the checkout has already happened by the time the generator reads this
  ;; file. What lives here is documentation, plus a compatibility FLOOR:
- ;; `:min-version "0.3.0"` matches the clogem-press 0.3.0 sha (the commit the
- ;; tag 0.3.0 points at) that publish.yml pins. A generator older than the
+ ;; `:min-version "0.3.0"` is the version publish.yml's pinned sha reports:
+ ;; clogem-press main at 5126ddb, 0.3.0 plus the language names. A generator older than the
  ;; floor is a config error: fm-fix, build and doctor all exit 1 and name both
  ;; versions, so nothing is deployed and the previous deployment keeps serving.
  ;; When you bump the `ref:`, raise this floor in the same commit. Write it as
