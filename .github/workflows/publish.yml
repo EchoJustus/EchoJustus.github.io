@@ -45,14 +45,15 @@ jobs:
       # its optional :generator :min-version is a compatibility floor the build asserts.
       #
       # A full 40-character sha is the intended long-term form of this pin: it is
-      # immutable, whereas a tag can be moved. It currently names clogem-press 0.3.0,
-      # the commit the tag `0.3.0` points at, matching the
-      # `:generator :min-version "0.3.0"` floor in site.edn. Pointing it at the tag
-      # instead is optional. When you bump it, raise that floor in the same commit.
+      # immutable, whereas a tag can be moved. It currently names clogem-press main
+      # at 5126ddb, the merge of #23: 0.3.0 plus the language names in the language
+      # lists ("简体中文 (Simplified Chinese)"). Its version.edn still says 0.3.0, so
+      # the `:generator :min-version "0.3.0"` floor in site.edn stays. When you bump
+      # the ref to a later release, raise that floor in the same commit.
       - uses: actions/checkout@v7
         with:
           repository: EchoJustus/clogem-press
-          ref: 7b37045e1781896b505c45f970df557fa407ee0d
+          ref: 5126ddb7088f413fa95af594c11b893652387b16
           path: generator
 
       - uses: DeLaGuardo/setup-clojure@13
