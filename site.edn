@@ -31,15 +31,15 @@
  ;; D-14: the AUTHORITATIVE version pin is the `ref:` in publish.yml, because
  ;; the checkout has already happened by the time the generator reads this
  ;; file. What lives here is documentation, plus a compatibility FLOOR:
- ;; `:min-version "0.2.0"` matches the clogem-press 0.2.0 sha (the commit the
- ;; tag v0.2.0 points at) that publish.yml pins. A generator older than the
+ ;; `:min-version "0.3.0"` matches the clogem-press 0.3.0 sha (the commit the
+ ;; tag 0.3.0 points at) that publish.yml pins. A generator older than the
  ;; floor is a config error: fm-fix, build and doctor all exit 1 and name both
  ;; versions, so nothing is deployed and the previous deployment keeps serving.
  ;; When you bump the `ref:`, raise this floor in the same commit. Write it as
  ;; MAJOR.MINOR.PATCH without a leading `v`.
  ;;
  ;; :repo itself is documentation. Nothing reads it.
- :generator {:repo "EchoJustus/clogem-press" :min-version "0.2.0"}
+ :generator {:repo "EchoJustus/clogem-press" :min-version "0.3.0"}
 
  ;; --------------------------------------------------------------- langs ----
  :langs {:default  :en
@@ -113,8 +113,9 @@
  ;; are indexed (homes and index pages are not), and each language with at
  ;; least one indexed page gets its own index. A page searches one index, never
  ;; a merge: its own language's or, while that language has none yet, the
- ;; largest (English here today). Cross-language search is deferred to a later
- ;; generator release. A failed Pagefind fetch or run fails the build, so
+ ;; largest (English here today). Since clogem-press 0.3.0 the search box can
+ ;; also offer a "Search all languages" tickbox: add `:cross-language true`
+ ;; here to turn it on. A failed Pagefind fetch or run fails the build, so
  ;; nothing is deployed and the previous deployment keeps serving.
  :search   {:provider :pagefind}
 
